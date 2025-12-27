@@ -27,3 +27,4 @@ coverage/
 # Docker / compose local
 docker-data/
 
+*:Zone.Identifier
