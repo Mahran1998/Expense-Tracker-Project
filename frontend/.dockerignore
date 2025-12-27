@@ -1,0 +1,26 @@
+# Dependency directories
+node_modules/
+build/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Logs and debug
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# Docker artifacts
+Dockerfile
+.dockerignore
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor or IDE files
+.vscode/
+.idea/
+
