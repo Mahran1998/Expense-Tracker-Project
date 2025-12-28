@@ -1,3 +1,5 @@
+[![CI](https://github.com/Mahran1998/Expense-Tracker-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/Mahran1998/Expense-Tracker-Project/actions/workflows/ci.yml)
+
 # Expense Tracker (Full-Stack, Dockerized) — Small Business Ready Demo
 
 > A containerized expense tracking web app demonstrating how a small business can reliably run a full-stack product (UI + API + data + caching + messaging) with a reproducible local/CI workflow.

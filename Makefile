@@ -22,3 +22,9 @@ smoke:
 
 reset:
 	$(COMPOSE) down -v
+
+.PHONY: ci
+ci:
+	$(MAKE) up
+	$(MAKE) smoke
+	$(MAKE) reset
