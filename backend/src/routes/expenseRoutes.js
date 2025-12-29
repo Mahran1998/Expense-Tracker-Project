@@ -1,12 +1,12 @@
 const express = require('express');
-const { listExpenses, addExpense } = require('../controllers/expenseController');
 const router = express.Router();
+const expenseController = require('../controllers/expenseController');
 
-// GET /api/expenses
-router.get('/', listExpenses);
-
-// POST /api/expenses
-router.post('/', addExpense);
+// MVP contract
+router.post('/', expenseController.createExpense);
+router.get('/', expenseController.getExpenses);
+router.patch('/:id', expenseController.updateExpense);
+router.patch('/:id/status', expenseController.updateExpenseStatus);
 
 module.exports = router;
 
