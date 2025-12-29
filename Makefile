@@ -1,4 +1,4 @@
-COMPOSE = docker compose
+COMPOSE = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
 .PHONY: up down ps logs build smoke reset
 

@@ -1,0 +1,16 @@
+services:
+  rabbitmq:
+    ports:
+      - "15672:15672"   # RabbitMQ management UI
+      - "5672:5672"     # AMQP (optional)
+
+  backend:
+    ports:
+      - "3000:3000"     # direct API access (optional)
+
+  # mongo:
+  #   ports:
+  #     - "27017:27017"
+  # redis:
+  #   ports:
+  #     - "6379:6379"

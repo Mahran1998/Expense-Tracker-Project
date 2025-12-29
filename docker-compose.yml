@@ -1,56 +1,91 @@
 services:
   mongo:
     image: mongo:7
-    container_name: expense-mongo
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
-    container_name: expense-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: expense-rabbitmq
     restart: unless-stopped
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    # Optional: create a non-guest user (recommended in real deployments)
+    # If you keep guest:guest in .env, you can remove the env block below.
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-expense}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-expense}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   backend:
     build:
       context: ./backend
-    container_name: expense-backend
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      - PORT=${PORT:-3000}
-      - MONGO_URL=${MONGO_URI:-mongodb://mongo:27017/expense_tracker}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
-      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
-    ports:
-      - "3000:3000"
+      PORT: ${PORT:-3000}
+      MONGO_URL: ${MONGO_URL:-mongodb://mongo:27017/expense_tracker}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # If you enable the non-guest user above, use this default:
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://${RABBITMQ_USER:-expense}:${RABBITMQ_PASS:-expense}@rabbitmq:5672}
     depends_on:
-      - mongo
-      - redis
-      - rabbitmq
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      # IMPORTANT: no `${}` here (Compose interpolation). Use string concat.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1));"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
   frontend:
     build:
       context: ./frontend
-    container_name: expense-frontend
     restart: unless-stopped
     ports:
       - "8080:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/api/health | grep -q '^OK$'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
 volumes:
   mongo_data:
