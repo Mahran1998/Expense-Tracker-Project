@@ -1,30 +1,55 @@
-// src/server.js
-require('dotenv').config();
 const express = require('express');
-const { connectDB } = require('./config/db');
-const { connectRedis } = require('./config/redis');
-const { connectRabbit } = require('./config/rabbit');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const morgan = require('morgan');
+const reportRoutes = require('./routes/reportRoutes');
+
+require('dotenv').config();
+
+// Import the new Business Logic
 const expenseRoutes = require('./routes/expenseRoutes');
-const { errorHandler } = require('./middleware/errorHandler');
-const { log } = require('./utils/logger');
 
 const app = express();
+
+// Middleware
 app.use(express.json());
+app.use(cors());
+app.use(morgan('dev')); // Logs requests to the console
 
-// connect to services
-connectDB();
-connectRedis();
-connectRabbit();
+// Database Connection
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URL);
+    console.log(`MongoDB connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+};
 
-// routes
+// --- ROUTES ---
+// Mount the Expense API at /api/expenses
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/reports', reportRoutes);
 
-// health-check
-app.get('/health', (req, res) => res.send('OK'));
+// --- HEALTH CHECKS ---
+// 1. Internal Docker check (localhost:3000/health)
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// error middleware
-app.use(errorHandler);
+// 2. Nginx/Frontend check (localhost:8080/api/health)
+app.get('/api/health', (req, res) => res.status(200).send('OK'));
 
+// Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => log(`Backend listening on port ${PORT}`));
+const startServer = async () => {
+  await connectDB();
+  
+  // Connect to RabbitMQ (Optional for MVP API, but good to init)
+  // We skip strict Rabbit connection here to let the separate module handle it
+  
+  app.listen(PORT, () => {
+    console.log(`Backend listening on port ${PORT}`);
+  });
+};
 
+startServer();
