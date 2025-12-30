@@ -7,6 +7,7 @@ RABBIT_UI_URL="${RABBIT_UI_URL:-http://localhost:15672/}"
 
 RETRIES="${RETRIES:-30}"
 SLEEP_SEC="${SLEEP_SEC:-2}"
+CHECK_RABBIT_UI="${CHECK_RABBIT_UI:-0}"
 
 echo "== Smoke test =="
 
@@ -50,13 +51,16 @@ retry_http_code "$FRONTEND_URL" "200"
 echo "[2/3] API health via proxy: $API_HEALTH_URL"
 retry_body_equals "$API_HEALTH_URL" "OK"
 
-echo "[3/3] RabbitMQ management UI: $RABBIT_UI_URL"
-# rabbitmq mgmt often returns 200 or 302
-code=$(curl -s -o /dev/null -w "%{http_code}" "$RABBIT_UI_URL" || true)
-if [[ "$code" != "200" && "$code" != "302" ]]; then
-  echo "WARN: RabbitMQ UI HTTP $code (continuing)"
-else
+if [[ "$CHECK_RABBIT_UI" == "1" ]]; then
+  echo "[3/3] RabbitMQ management UI: $RABBIT_UI_URL"
+  code=$(curl -s -o /dev/null -w "%{http_code}" "$RABBIT_UI_URL" || true)
+  if [[ "$code" != "200" && "$code" != "302" ]]; then
+    echo "FAIL: RabbitMQ UI HTTP $code"
+    exit 1
+  fi
   echo "OK: rabbitmq ui HTTP $code"
+else
+  echo "[3/3] RabbitMQ management UI: (skipped) set CHECK_RABBIT_UI=1 to enable"
 fi
 
 echo "✅ Smoke test passed"

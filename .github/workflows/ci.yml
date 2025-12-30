@@ -31,9 +31,7 @@ jobs:
 
       - name: Collect diagnostics
         if: always()
-        run: |
-          docker compose ps > compose-ps.txt
-          docker compose logs --no-color --tail=400 > compose-logs.txt
+        run: make diag
 
       - name: Upload diagnostics
         if: always()
