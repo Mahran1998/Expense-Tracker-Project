@@ -40,6 +40,45 @@ Flow:
 ### Prerequisites
 - Docker + Docker Compose (Docker Desktop or Linux Docker Engine)
 
+## Business MVP: Expense Workflow (Phase 3.2)
+
+This project implements a practical **small-business expense approval flow**:
+
+**Employee** submits an expense → **Manager** approves/rejects → **Owner** views monthly totals and breakdowns.
+
+### What it solves for a business owner
+- Centralizes company spending (no scattered receipts/Excel files)
+- Creates accountability via approval status (submitted/approved/rejected)
+- Enables quick monthly reporting by currency/category/status
+- Designed as a service-ready stack (API + DB + caching + messaging + reverse proxy)
+
+### API Contract (Implemented)
+- `POST /api/expenses` — create an expense
+- `GET /api/expenses` — list expenses with filters (`from`, `to`, `category`, `status`)
+- `PATCH /api/expenses/:id` — edit expense fields
+- `PATCH /api/expenses/:id/status` — approve/reject
+- `GET /api/reports/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` — monthly summary totals + breakdowns
+
+### Quick demo (copy/paste)
+```bash
+# create
+curl -s -X POST http://localhost:8080/api/expenses \
+  -H 'Content-Type: application/json' \
+  -d '{"amount":19.9,"currency":"HUF","date":"2025-12-29","vendor":"Tesco","category":"Food","costCenter":"Office","notes":"Team lunch"}' | jq .
+
+# list
+curl -s "http://localhost:8080/api/expenses?from=2025-12-01&to=2025-12-31" | jq .
+
+# approve
+ID=<PASTE_ID_HERE>
+curl -s -X PATCH "http://localhost:8080/api/expenses/$ID/status" \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"approved"}' | jq .
+
+# monthly summary
+curl -s "http://localhost:8080/api/reports/summary?from=2025-12-01&to=2025-12-31" | jq .
+
+
 ### Run the full stack
 ```bash
 # 1) (optional) create local env file
@@ -50,3 +89,5 @@ make up
 
 # 3) verify services quickly (smoke test)
 make smoke
+```bash
+
