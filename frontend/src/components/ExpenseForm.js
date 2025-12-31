@@ -126,7 +126,7 @@ export default function ExpenseForm({ onCreate, loading }) {
         </label>
 
         <div className="actions">
-          <button className="btn" type="submit" disabled={disabled}>
+          <button className="btn btn-primary" type="submit" disabled={disabled}>
             Create
           </button>
         </div>

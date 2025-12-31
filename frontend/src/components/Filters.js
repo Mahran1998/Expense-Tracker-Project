@@ -50,7 +50,7 @@ export default function Filters({ draft, setDraft, onApply, onClear, loading }) 
       </div>
 
       <div className="actions">
-        <button className="btn" onClick={onApply} disabled={loading}>
+        <button className="btn btn-primary" onClick={onApply} disabled={loading}>
           Apply
         </button>
         <button className="btn btn-ghost" onClick={onClear} disabled={loading}>

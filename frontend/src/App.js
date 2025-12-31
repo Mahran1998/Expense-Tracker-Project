@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   createExpense,
   getSummary,
@@ -38,12 +38,12 @@ export default function App() {
 
   const range = useMemo(() => ({ from: filters.from, to: filters.to }), [filters]);
 
+  const toastTimer = useRef(null);
+
   function showToast(msg, type = "info") {
     setToast({ msg, type });
-    window.clearTimeout(window.__toastTimer);
-    window.__toastTimer = window.setTimeout(() => {
-      setToast({ msg: "", type: "info" });
-    }, 3000);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast({ msg: "", type: "info" }), 3000);
   }
 
   async function loadAll(active = filters) {
@@ -69,14 +69,12 @@ export default function App() {
 
   async function handleApply() {
     setFilters(draftFilters);
-    await loadAll(draftFilters);
   }
 
   async function handleClear() {
     const cleared = { from: "", to: "", category: "", status: "" };
     setDraftFilters(cleared);
     setFilters(cleared);
-    await loadAll(cleared);
   }
 
   async function handleCreate(payload) {
@@ -136,18 +134,30 @@ export default function App() {
       <header className="header">
         <div>
           <h1>Expense Tracker</h1>
-          <div className="muted">
-            Single entrypoint (8080) → UI + /api reverse proxy → backend + MongoDB
+          <div className="sub">
+            One entrypoint: <span className="mono">:8080</span> (UI + <span className="mono">/api</span> proxy)
           </div>
         </div>
 
-        <div className="header-meta">
-          <div className="muted">Range</div>
-          <div className="mono">
-            {range.from || "—"} → {range.to || "—"}
+        <div className="header-right">
+          <div className="badge" title="Data state">
+            <span className={`dot ${loading ? "loading" : ""}`} />
+            <span>{loading ? "Loading…" : "Ready"}</span>
           </div>
+
+          <div className="badge" title="Current range">
+            <span className="muted">Range</span>
+            <span className="mono">
+              {range.from || "—"} → {range.to || "—"}
+            </span>
+          </div>
+
+          <button className="btn btn-primary" onClick={() => loadAll(filters)} disabled={loading}>
+            Refresh
+          </button>
         </div>
       </header>
+
 
       <main className="container">
         <Toast

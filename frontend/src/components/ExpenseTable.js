@@ -110,7 +110,7 @@ export default function ExpenseTable({
                           </button>
 
                           <button
-                            className="btn"
+                            className="btn btn-primary"
                             onClick={() => onApprove(x._id)}
                             disabled={!canAct || isBusy}
                           >
@@ -233,7 +233,7 @@ export default function ExpenseTable({
 
                             <div className="actions">
                               <button
-                                className="btn"
+                                className="btn btn-primary"
                                 onClick={() => saveEdit(x._id)}
                                 disabled={isBusy}
                               >

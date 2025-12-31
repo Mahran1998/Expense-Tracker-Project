@@ -36,6 +36,9 @@ logs-dev:
 smoke:
 	./scripts/smoke.sh
 
+seed:
+	./scripts/seed_expenses.sh
+	
 # In dev we *expect* RabbitMQ UI to be exposed, so we enable the check.
 smoke-dev:
 	CHECK_RABBIT_UI=1 ./scripts/smoke.sh
