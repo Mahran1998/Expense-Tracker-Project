@@ -19,11 +19,17 @@ const ExpenseSchema = new mongoose.Schema(
       default: 'submitted',
       index: true,
     },
+
+    // Audit fields (Phase 4.1)
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    approvedAt: { type: Date, default: null },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true }
 );
 
-// Helpful indexes for filters/reports
+// helpful indexes
 ExpenseSchema.index({ date: 1 });
 ExpenseSchema.index({ category: 1, status: 1 });
 

@@ -39,6 +39,8 @@ smoke:
 seed:
 	./scripts/seed_expenses.sh
 	
+seed-users:
+	./scripts/seed_users.sh
 # In dev we *expect* RabbitMQ UI to be exposed, so we enable the check.
 smoke-dev:
 	CHECK_RABBIT_UI=1 ./scripts/smoke.sh
@@ -61,3 +63,4 @@ ci:
 	$(MAKE) up
 	$(MAKE) smoke
 	$(MAKE) reset
+

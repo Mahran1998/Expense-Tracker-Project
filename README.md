@@ -2,92 +2,92 @@
 
 # Expense Tracker (Full-Stack, Dockerized) — Small Business Ready Demo
 
-> A containerized expense tracking web app demonstrating how a small business can reliably run a full-stack product (UI + API + data + caching + messaging) with a reproducible local/CI workflow.
+A containerized expense tracking web app showing how a small business can run a full-stack product (UI + API + data + caching + messaging) with a reproducible local/CI workflow.
 
-## Why this matters for a business
-If you run a small company (shop, agency, freelancer team), expense tracking is a daily pain:
-- scattered receipts, inconsistent categories, late monthly reporting
-- unclear spending trends (where money leaks)
-- hard to scale from “one laptop app” to a reliable shared system
+---
 
-This project shows a **practical foundation** for a lightweight internal expense tool you can deploy on a VM or cloud instance—then grow into a production service with CI/CD, monitoring, backups, and access control.
+## Why this matters (business story)
+Small businesses often manage expenses with Excel + receipts scattered across WhatsApp/email.
+That creates:
+- missing approvals and unclear accountability
+- late monthly reporting and poor spend visibility
+- messy reimbursements and “lost receipt” chaos
+
+This project provides a **service-ready foundation** that can run on a small VM and grow into a production system.
+
+---
 
 ## What it demonstrates (business + engineering)
-**Business value (demo scope):**
-- Central place for recording and reviewing expenses (persisted in a database)
-- API-first backend so it can integrate later with finance tooling, exports, dashboards
-- Foundation for async workflows (e.g., notifications, approvals) using a message broker
 
-**Engineering / DevOps value (real proof):**
+### Business value (MVP scope)
+- Capture expenses: amount, date, vendor, category, cost center, notes
+- Approval workflow: `submitted → approved/rejected`
+- Monthly summary totals + breakdowns (by category/status/currency)
+- UI that feels like a real internal tool (dashboard + forms + approvals)
+
+### Engineering / DevOps value (real proof)
 - Multi-service architecture: frontend + backend + MongoDB + Redis + RabbitMQ
 - Docker Compose orchestration (one command to run the whole stack)
-- Nginx reverse proxy (`/api/*` → backend) like real deployments
-- One-command validation via `make up` + `make smoke` (repeatable + recruiter-friendly)
+- Healthchecks + dependency readiness (`depends_on: condition: service_healthy`)
+- Nginx reverse proxy (single entrypoint: `:8080`)
+- CI pipeline runs the stack + smoke tests (repeatable validation)
 
-## Architecture (simple)
-- **Frontend:** React built and served by **Nginx**
-- **Backend:** Node.js/Express API
-- **MongoDB:** persistence for expense records
-- **Redis:** caching layer (ready for performance improvements)
-- **RabbitMQ:** messaging foundation (ready for async tasks like notifications/events)
+---
+
+## Architecture
+**Frontend:** React built and served by **Nginx**  
+**Backend:** Node.js/Express API  
+**MongoDB:** persistence for expense records  
+**Redis:** caching foundation (future phase)  
+**RabbitMQ:** async messaging foundation (future phase)
 
 Flow:
-- User opens the app on `http://localhost:8080`
-- UI calls the API through Nginx proxy at `/api/*`
-- Backend uses MongoDB/Redis and can publish/consume events via RabbitMQ
+- User opens: `http://localhost:8080`
+- UI calls API via Nginx proxy: `/api/*`
+- Backend persists to MongoDB
 
-## Quick start (2 minutes)
-### Prerequisites
-- Docker + Docker Compose (Docker Desktop or Linux Docker Engine)
+---
 
-## Business MVP: Expense Workflow (Phase 3.2)
+## Phases / Features
 
-This project implements a practical **small-business expense approval flow**:
-
-**Employee** submits an expense → **Manager** approves/rejects → **Owner** views monthly totals and breakdowns.
-
-### What it solves for a business owner
-- Centralizes company spending (no scattered receipts/Excel files)
-- Creates accountability via approval status (submitted/approved/rejected)
-- Enables quick monthly reporting by currency/category/status
-- Designed as a service-ready stack (API + DB + caching + messaging + reverse proxy)
-
-### API Contract (Implemented)
+### Phase 3.2 — Business MVP API (DONE)
 - `POST /api/expenses` — create an expense
-- `GET /api/expenses` — list expenses with filters (`from`, `to`, `category`, `status`)
+- `GET /api/expenses` — list with filters (`from`, `to`, `category`, `status`)
 - `PATCH /api/expenses/:id` — edit expense fields
 - `PATCH /api/expenses/:id/status` — approve/reject
-- `GET /api/reports/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` — monthly summary totals + breakdowns
+- `GET /api/reports/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` — totals + breakdowns
 
-### Quick demo (copy/paste)
+### Phase 3.3 — Business MVP UI (DONE)
+- Dashboard cards (totals/byStatus/top categories)
+- Add expense form
+- Filters (date range/category/status)
+- Expense table with inline edit + approve/reject
+- Single entrypoint experience on `:8080`
+
+### Phase 4.1 — Real company workflow (Auth + Roles + Audit) (DONE)
+Users + roles:
+- `employee` — create + view **own** expenses; edit only **own submitted** expenses
+- `manager` — view all; approve/reject submitted expenses; access reports
+- `accountant` — access reports (and can view expenses; no edit/approve)
+
+JWT authentication:
+- Login returns a token
+- Frontend attaches `Authorization: Bearer <token>` to API requests
+
+Audit trail (stored in MongoDB):
+- `createdBy`
+- `updatedBy`
+- `approvedBy`, `approvedAt` (set on approve/reject)
+
+---
+
+## Quick start (2 minutes)
+
+### Prerequisites
+- Docker + Docker Compose
+
+### Run the stack (production-safe default: only 8080 exposed)
 ```bash
-# create
-curl -s -X POST http://localhost:8080/api/expenses \
-  -H 'Content-Type: application/json' \
-  -d '{"amount":19.9,"currency":"HUF","date":"2025-12-29","vendor":"Tesco","category":"Food","costCenter":"Office","notes":"Team lunch"}' | jq .
-
-# list
-curl -s "http://localhost:8080/api/expenses?from=2025-12-01&to=2025-12-31" | jq .
-
-# approve
-ID=<PASTE_ID_HERE>
-curl -s -X PATCH "http://localhost:8080/api/expenses/$ID/status" \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"approved"}' | jq .
-
-# monthly summary
-curl -s "http://localhost:8080/api/reports/summary?from=2025-12-01&to=2025-12-31" | jq .
-
-
-### Run the full stack
-```bash
-# 1) (optional) create local env file
 cp .env.example .env
-
-# 2) start everything
 make up
-
-# 3) verify services quickly (smoke test)
 make smoke
-```bash
-

@@ -12,6 +12,7 @@ import ExpenseForm from "./components/ExpenseForm";
 import ExpenseTable from "./components/ExpenseTable";
 import SummaryCards from "./components/SummaryCards";
 import Toast from "./components/Toast";
+import Login from "./components/Login";
 
 function firstDayOfMonthISO() {
   const d = new Date();
@@ -40,6 +41,18 @@ export default function App() {
 
   const toastTimer = useRef(null);
 
+  const [user, setUser] = useState(() => {
+  try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  });
+
+  function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  setUser(null);
+  showToast("Logged out", "info");
+  }
+
+
   function showToast(msg, type = "info") {
     setToast({ msg, type });
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -49,10 +62,19 @@ export default function App() {
   async function loadAll(active = filters) {
     setLoading(true);
     try {
-      const [list, sum] = await Promise.all([
-        listExpenses(active),
-        getSummary(active.from, active.to),
-      ]);
+      const role = user?.role;
+
+      const listPromise = listExpenses(active);
+
+      const canSummary =
+        (role === "manager" || role === "accountant") &&
+        active.from &&
+        active.to;
+
+      const summaryPromise = canSummary ? getSummary(active.from, active.to) : Promise.resolve(null);
+
+      const [list, sum] = await Promise.all([listPromise, summaryPromise]);
+
       setItems(list);
       setSummary(sum);
     } catch (e) {
@@ -62,10 +84,10 @@ export default function App() {
     }
   }
 
+
   useEffect(() => {
-    loadAll(filters);
-    
-  }, [filters.from, filters.to, filters.category, filters.status]);
+    if (user) loadAll(filters);
+  }, [user, filters.from, filters.to, filters.category, filters.status]);
 
   async function handleApply() {
     setFilters(draftFilters);
@@ -143,6 +165,11 @@ export default function App() {
           <div className="badge" title="Data state">
             <span className={`dot ${loading ? "loading" : ""}`} />
             <span>{loading ? "Loading…" : "Ready"}</span>
+            {user && (
+              <button className="btn btn-ghost" onClick={logout}>
+                Logout ({user.role})
+              </button>
+            )}
           </div>
 
           <div className="badge" title="Current range">
@@ -165,6 +192,11 @@ export default function App() {
           type={toast.type}
           onClose={() => setToast({ msg: "", type: "info" })}
         />
+        {!user ? (
+          <Login onLoggedIn={setUser} showToast={showToast} />
+        ) : (
+          <>
+            {/* everything below stays the same */}
 
         <SummaryCards summary={summary} />
 
@@ -196,6 +228,8 @@ export default function App() {
           onEdit={handleEdit}
           busyId={busyId}
         />
+          </>
+        )}
       </main>
 
       <footer className="footer muted">

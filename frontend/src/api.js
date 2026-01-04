@@ -4,9 +4,15 @@ async function request(path, { method = "GET", body, params } = {}) {
   const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
   const url = `${API_BASE}${path}${qs}`;
 
+  const token = localStorage.getItem("token");
+  const headers = {
+    ...(body ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
   const res = await fetch(url, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -15,7 +21,7 @@ async function request(path, { method = "GET", body, params } = {}) {
     throw new Error(text || `${res.status} ${res.statusText}`);
   }
 
-  // all our business endpoints return JSON
+  // Some endpoints might return empty, but ours return JSON
   return res.json();
 }
 
@@ -48,4 +54,8 @@ export function getSummary(from, to) {
   if (from) params.from = from;
   if (to) params.to = to;
   return request("/api/reports/summary", { params });
+}
+
+export function login(email, password) {
+  return request("/api/auth/login", { method: "POST", body: { email, password } });
 }

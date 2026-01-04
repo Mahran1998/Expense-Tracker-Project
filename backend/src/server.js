@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 const reportRoutes = require('./routes/reportRoutes');
+const authRoutes = require("./routes/authRoutes");
 
 require('dotenv').config();
 
@@ -28,6 +29,7 @@ const connectDB = async () => {
 };
 
 // --- ROUTES ---
+app.use("/api/auth", authRoutes);
 // Mount the Expense API at /api/expenses
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/reports', reportRoutes);

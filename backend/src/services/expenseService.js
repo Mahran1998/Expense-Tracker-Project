@@ -1,6 +1,6 @@
 const Expense = require('../models/expenseModel');
 
-function buildListQuery({ from, to, category, status }) {
+function buildListQuery({ from, to, category, status, createdBy }) {
   const query = {};
 
   // Date range filter (inclusive)
@@ -21,11 +21,14 @@ function buildListQuery({ from, to, category, status }) {
   if (category) query.category = category;
   if (status) query.status = status;
 
+  // ✅ ownership filter for employees
+  if (createdBy) query.createdBy = createdBy;
+
   return query;
 }
 
 async function createExpense(payload) {
-  // Whitelist fields to avoid junk input
+  if (!payload.createdBy) throw new Error("createdBy is required");
   const doc = {
     amount: payload.amount,
     currency: payload.currency,
@@ -33,8 +36,17 @@ async function createExpense(payload) {
     vendor: payload.vendor,
     category: payload.category,
     costCenter: payload.costCenter,
-    notes: payload.notes ?? '',
-    // status is default "submitted"
+    notes: payload.notes ?? "",
+
+    // enforced server-side
+    status: "submitted",
+
+    // ✅ audit
+    createdBy: payload.createdBy,
+    updatedBy: payload.updatedBy || payload.createdBy,
+
+    approvedBy: null,
+    approvedAt: null,
   };
 
   return Expense.create(doc);
@@ -45,29 +57,55 @@ async function listExpenses(filters) {
   return Expense.find(query).sort({ date: -1, createdAt: -1 });
 }
 
-async function updateExpense(id, patch) {
+async function updateExpenseWithRules(id, patch, user) {
+  if (user.role === "accountant") {
+    throw new Error("Forbidden: accountant cannot edit expenses");
+  }
+
   // Only allow editing business fields (NOT status here)
   const allowed = ['amount', 'currency', 'date', 'vendor', 'category', 'costCenter', 'notes'];
   const updates = {};
-
   for (const key of allowed) {
     if (patch[key] !== undefined) updates[key] = patch[key];
   }
+  updates.updatedBy = user.id;
 
-  return Expense.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+  // ✅ enforce rules by role
+  let filter = { _id: id, status: "submitted" };
+
+  if (user.role === "employee") {
+    filter.createdBy = user.id; // own only
+  }
+  // manager: submitted only (no createdBy restriction)
+
+  return Expense.findOneAndUpdate(filter, updates, { new: true, runValidators: true });
 }
 
-async function updateExpenseStatus(id, status) {
-  return Expense.findByIdAndUpdate(
-    id,
-    { status },
-    { new: true, runValidators: true }
-  );
+async function updateExpenseStatusWithAudit(id, status, user) {
+  // This endpoint is manager-only at the route level.
+  if (status !== "approved" && status !== "rejected") {
+    throw new Error("Only approved/rejected allowed here");
+  }
+
+  const expense = await Expense.findById(id);
+  if (!expense) return null;
+
+  if (expense.status !== "submitted") {
+    throw new Error("Only submitted expenses can be approved/rejected");
+  }
+
+  expense.status = status;
+  expense.approvedBy = user.id;
+  expense.approvedAt = new Date();
+  expense.updatedBy = user.id;
+
+  await expense.save();
+  return expense;
 }
 
 module.exports = {
   createExpense,
   listExpenses,
-  updateExpense,
-  updateExpenseStatus,
+  updateExpenseWithRules,
+  updateExpenseStatusWithAudit,
 };
